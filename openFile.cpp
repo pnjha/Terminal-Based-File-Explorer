@@ -26,25 +26,26 @@ using namespace std;
 int main()
 
 {
-    string filename,str= "xdg-open ";
+    string filename;
 
     printf("Enter the filename to be opened \n");
 
     getline(cin,filename);
 
-    str.append(filename);
-    //str = filename;
-    char file[str.length()];
+    char file[filename.length()+1];
 
-    for(int i=0;i<str.length();i++)
-        file[i] = str[i];
-    //file[str.length()+1] = NULL;
-    /*  open the file for reading */
-    system(file);
+    for(int i=0;i<filename.length();i++)
+        file[i] = filename[i];
 
-    //if(!fork())
-    //execl(file, NULL);
+    file[filename.length()+1] = NULL;
+
+    int pid = fork();
+
+    if (pid == 0) {
+      execl("/usr/bin/xdg-open", "xdg-open", file, (char *)0);
+      exit(1);
+    }
 
     return 0;
 
-}
+}s
