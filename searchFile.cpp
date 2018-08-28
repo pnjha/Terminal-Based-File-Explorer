@@ -27,23 +27,25 @@ char pathname[MAXPATHLEN];
 
 int main(int argc, char *argv[])
 {
-DIR *dp;
-struct dirent *dirp;
+	DIR *dp;
+	struct dirent *dirp;
 
-if(!getcwd(pathname, sizeof(pathname)))
-    printf("Error getting pathnamen");
+	if(!getcwd(pathname, sizeof(pathname)))
+	    printf("Error getting pathnamen");
 
-if ((dp = opendir(pathname)) == NULL)
-{
-printf("can't open %s", pathname);
-exit(1);
-}
-while ((dirp = readdir(dp)) != NULL)
-{
-if(!strcmp(dirp->d_name,argv[1]))
-printf("%s\n", dirp->d_name);
-}
-closedir(dp);
-exit(0);
+	if ((dp = opendir(pathname)) == NULL)
+	{
+		printf("can't open %s", pathname);
+		exit(1);
+	}
+	
+	while ((dirp = readdir(dp)) != NULL)
+	{
+		if(!strcmp(dirp->d_name,argv[1]))
+		printf("%s\n", dirp->d_name);
+	}
+	
+	closedir(dp);
+	exit(0);
 }
 
