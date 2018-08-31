@@ -13,7 +13,7 @@ Funtionalities Implemented
 3.Create Directory
 4.Delete File : 
 5.Delete Directory : 
-6.Goto Directory : goto <directory> "\n"
+6.Goto Directory : goto <directory> 
                    Opens the directory and list all files an folders in that particular directory
 7.Search : search <filename>
            Displays all the successful search matches on terminal in normal mode
