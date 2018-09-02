@@ -50,11 +50,11 @@ void listFiles(char *basePath,vector<pair<string, int>> &searchDirectory)
 
 
 void search(string fileName){
-    cout<<"\n"<<fileName<<"\n";
+ //   cout<<"\n"<<fileName<<"\n";
     char path[fileName.length()+1];
 
     strcpy(path,fileName.c_str());
-    printf("%s\n", path);
+//    printf("%s\n", path);
     
     vector<pair<string,int>> searchDirectory;
 
@@ -68,7 +68,7 @@ void search(string fileName){
     	listFiles(path,searchDirectory);
     	i++;
     }
-    cout<<"sdfsd\n"<<fileName<<"\n";
+//    cout<<"sdfsd\n"<<fileName<<"\n";
     searchPrint(searchDirectory,fileName);
    
 }

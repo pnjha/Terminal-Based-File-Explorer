@@ -16,8 +16,37 @@
 
 using namespace std;
 
-int mkdir(const char *pathname, mode_t mode);
+//int mkdir(const char *pathname, mode_t mode);
 
+
+
+void createDirectory(string path){
+	int i=0;
+	//char c[PATHMAX],t;
+	 int n = path.length(); 
+     
+    // declaring character array
+    char pathname[n+1]; 
+     
+    // copying the contents of the 
+    // string to char array
+    strcpy(pathname, path.c_str());
+
+	if (mkdir(pathname,0777) == -1) {
+        //perror(argv[0]);
+        exit(EXIT_FAILURE);
+    }
+	
+}
+
+
+int main(){
+	string str;
+	getline(cin,str);
+	createDirectory(str);
+	return 0;
+}
+/*
 int main(){
 	int i=0;
 	char c[1024],t;
@@ -31,4 +60,4 @@ int main(){
     }
 
 	return 0;	
-}
+}*/

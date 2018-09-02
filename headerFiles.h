@@ -34,8 +34,7 @@
 #include "deleteFile.h"
 #include "copyFile.h"
 #include "createDirectory.h"
-#include "snapshot.h"
-#include "searchFile.h"
+//#include "searchFile.h"
 
 #define ESC          27
 #define INSERT       50
@@ -55,9 +54,9 @@
 #define BACKSPACE   127
 
 #define FIRSTROW 0
-#define BOTTOMROW 40
+#define BOTTOMROW 52
 #define FIRSTCOL 0
-#define MAXROWINDEX 30
+#define MAXROWINDEX 55
 #define MINROWINDEX 0
 #define STATUSROW 54
 #define NORMALMODE 1
