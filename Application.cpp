@@ -307,7 +307,7 @@ int setNormalMode(int mode){
 		printDirectories(trim(uplevelPath),MAXROWINDEX,MINROWINDEX);
 		displayStatusBar(NORMALMODE);
     }
-    else if ( c == HOME){
+    else if ( c == 'h'){
     	traverseLeft.push(homeDirectory);
     	parentDirectory = workingDirectory;
     	workingDirectory = homeDirectory;
