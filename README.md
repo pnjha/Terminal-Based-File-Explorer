@@ -55,6 +55,9 @@ Funtionalities Implemented
 8. Snapshot : snapshot <directory_name> <filename>
             It creates a dump file in with the name entered which contains entire directory structure from the given particular directory
 
+9. Move directory :  move_dir <source directory> <destination directory>
+	       Move the source directory to the destination directory while deleting the original copy
+
 
 Transition 
 
@@ -67,31 +70,13 @@ Note :
 
 1. Error handling of opening a file whoes default program is unknown is not done
 
-2. Copy directory and Move directory functionality not implemented 
+2. Copy directory functionality not implemented 
 
 3. Dynamic resizing of terminal not handled , user is expected to run the program in full screen mode
 
 4. Snapshot is a seperate program which is executed by main application via fork and execl , user is expected to compile snapshot.cpp file with the following command
 	
 	g++ snapshot.cpp -o snapshot
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
