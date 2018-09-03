@@ -12,3 +12,6 @@ Application: $(OBJ)
 run: 
 	@./Application
 
+
+
+

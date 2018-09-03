@@ -1,27 +1,15 @@
 #include "headerFiles.h"
-#include <sys/ioctl.h>
-#include <stdio.h>
-#include <unistd.h>
-
-//#define TIOCGWINSZ      _IOR(t, 104, struct winsize)    /* get window size */
-//#define TIOCSWINSZ      _IOW(t, 103, struct winsize)    /* set window size */
 
 using namespace std;
 
 int INDEX = 0;
-
+int EXTRA = 0;
 
 string homeDirectory;
 string workingDirectory;
 string parentDirectory;
 string searchFileName;
-//static const int STDIN = 0;
-//struct winsize ws,size;
-//std::ioctl(STDIN_FILENO, TIOCGWINSZ, &ws);
-
-//struct winsize ws;
-//ioctl(0,TIOCGWINSZ,&ws);
-
+int NOE;
 
 vector<pair<string,string>> presentDirectoryInfo;
 vector<pair<string,int>> presentDirectory;
@@ -40,22 +28,16 @@ int isDownAllowed();
 void setCursorTopRow();
 void setCursorBottomRow();
 void listDirectories(string,string);
-void printDirectories(string);
+void printDirectories(string,int,int);
 int setCommandMode();
 void displayStatusBar(int);
-int setNormalMode();
+int setNormalMode(int);
 void initializeVariables();
 void gotoDirectory(string);
 
 string& ltrim(string&);
 string& rtrim(string&);
 string& trim(string&);
-
-//struct winsize ws;
-//ioctl(STDIN_FILENO, TIOCGWINSZ, &ws);
-
-//printf ("lines %d\n", ws.ws_row);
-//printf ("columns %d\n", ws.ws_col);
 
 
 //////////////////////////////////////////////////////////// READ AND STORE DIRECTORY INFO //////////////////////////////////////////////////////////////////
@@ -99,8 +81,7 @@ void die(char *msg)
   exit(0);
 }
 
-static int
-one (const struct dirent *unused)
+static int one (const struct dirent *unused)
 {
   return 1;
 }
@@ -129,16 +110,14 @@ void listDirectories(string currentDirectory,string parentDirectory){
 
   if(count > 0)
   {
-    //printf("total %d\n",count);
-
+    
     for (i=0; i<count; ++i)
     {
       	stat(files[i]->d_name, &statbuf);
       
-        /* Print out type, permissions, and number of links. */
       	string status = get_perms(statbuf.st_mode);
       	if(status[0]=='d'){
-      		//sprintf(temp,"%s/%s",currentDirectory,files[i]->d_name);
+
       		temp = string(files[i]->d_name);
       		if(temp.length()==1&&temp[0]=='.'){
       			if(currentDirectory==homeDirectory){
@@ -165,7 +144,6 @@ void listDirectories(string currentDirectory,string parentDirectory){
       		}
       	}else if(status[0]!='d'){
 
-      		//sprintf(temp,"%s/%s",currentDirectory,files[i]->d_name);
       		temp = currentDirectory+"/"+string(files[i]->d_name);
       		temp = trim(temp);
       		presentDirectoryInfo.push_back(pair<string, string> (temp,currentDirectory));
@@ -186,7 +164,7 @@ void listDirectories(string currentDirectory,string parentDirectory){
 
 ///////////////////////////////////////////////////////////// PRINT DIRECTORY ///////////////////////////////////////////////////////////////////////////////
 
-void printDirectories(string currentDirectory){
+void printDirectories(string currentDirectory,int upperlimit,int lowerlimit){
 
   int count,i;
   struct dirent **files;
@@ -205,12 +183,12 @@ void printDirectories(string currentDirectory){
 
 
   count = scandir(path_name, &files, one, alphasort);
-
+  NOE = count;
+  
   if(count > 0)
   {
-    //printf("total %d\n",count);
-
-    for (i=0; i<count; ++i)
+  	upperlimit  = count>upperlimit?upperlimit:count;
+    for (i=lowerlimit; i<upperlimit; ++i)
     {
       	stat(files[i]->d_name, &statbuf);
       
@@ -218,7 +196,7 @@ void printDirectories(string currentDirectory){
       	string status = get_perms(statbuf.st_mode);
 
         printf(" %10.10s", get_perms(statbuf.st_mode));
-        printf("\t%d", statbuf.st_nlink);
+        //printf("\t%d", statbuf.st_nlink);
 
         if (!getpwuid_r(statbuf.st_uid, &pwent, buf, sizeof(buf), &pwentp))
           printf("\t%s", pwent.pw_name);
@@ -239,8 +217,7 @@ void printDirectories(string currentDirectory){
 
         printf("\t%s\t%s\n", datestring, files[i]->d_name);
       
-
-      free (files[i]);
+        free (files[i]);
     }
 
     free(files);
@@ -274,7 +251,7 @@ void printpresentDirectoryInfo(){
 
 ///////////////////////////////////////////////////////////// SET NORMAL MODE /////////////////////////////////////////////////////////////////////////////////
 
-int setNormalMode(){
+int setNormalMode(int mode){
 
   struct winsize ws;
   ioctl(STDIN_FILENO, TIOCGWINSZ, &ws);
@@ -288,19 +265,22 @@ int setNormalMode(){
     else
         fprintf(stderr, "Cannot initialize terminal: %s.\n", strerror(errno));
   return -1;
-  }
-  else{
+  }else{
+
   	reset();
     listDirectories(workingDirectory,parentDirectory);
-    printDirectories(workingDirectory);
+    printDirectories(workingDirectory,MAXROWINDEX,MINROWINDEX);
     displayStatusBar(NORMALMODE);
     SetCursor(0,0);
     
   }
-  //printpresentDirectory();
-  //printpresentDirectoryInfo();
-  //  printf("\033[1;1H");
   
+  if(mode==0){
+  	terminal_done();
+    setCommandMode(); 
+    return 0;
+  }
+
   while ((c = getchar()) != EOF) {
     
     if (c == ':'){
@@ -324,7 +304,7 @@ int setNormalMode(){
 		reset();
 		listDirectories(trim(uplevelPath),parentDirectory);
 		
-		printDirectories(trim(uplevelPath));
+		printDirectories(trim(uplevelPath),MAXROWINDEX,MINROWINDEX);
 		displayStatusBar(NORMALMODE);
     }
     else if ( c == HOME){
@@ -335,7 +315,7 @@ int setNormalMode(){
 		presentDirectory.clear();
 		reset();
 		listDirectories(trim(homeDirectory),parentDirectory);
-		printDirectories(trim(homeDirectory));
+		printDirectories(trim(homeDirectory),MAXROWINDEX,MINROWINDEX);
 		displayStatusBar(NORMALMODE);
     }
     else if ( c == ARROWRIGHT) {
@@ -349,15 +329,17 @@ int setNormalMode(){
 			presentDirectory.clear();
 			reset();	
 			listDirectories(trim(targetPath),parentDirectory);
-			printDirectories(trim(targetPath));
+			printDirectories(trim(targetPath),MAXROWINDEX,MINROWINDEX);
 			traverseRight.pop();
 			SetCursor(0,0);
+			displayStatusBar(NORMALMODE);
 		}
 
     }
     else if ( c == ARROWLEFT) {
         //printf ( "\033[D");//cursor left
-		if(!traverseLeft.empty()){
+		if(workingDirectory!=homeDirectory){
+			if(!traverseLeft.empty()){
 			traverseRight.push(traverseLeft.top());
 			traverseLeft.pop();
 			parentDirectory = workingDirectory;
@@ -368,29 +350,49 @@ int setNormalMode(){
 			
 			reset();	
 			listDirectories(trim(targetPath),parentDirectory);	
-			printDirectories(trim(targetPath));
+			printDirectories(trim(targetPath),MAXROWINDEX,MINROWINDEX);
 			SetCursor(0,0);
-		}if(traverseLeft.empty()){
-			traverseLeft.push(homeDirectory);
+			displayStatusBar(NORMALMODE);
+			}else if(traverseLeft.empty()){
+				traverseLeft.push(homeDirectory);
+			}
 		}        
     }
     else if ( c == ARROWUP) {
-		if(isUpAllowed()){
-			
-			if(INDEX>0){
-				moveCursorUp();
-				INDEX--;
-			}
+    	//cout<<INDEX<<" "<<EXTRA;
+		if(INDEX>0)
+    		INDEX--;
+		if(INDEX>EXTRA){
+			moveCursorUp();
+		}else{
+			EXTRA--;
+			ClearScreen();
+			SetCursor(0,0);	
+			printDirectories(workingDirectory,MAXROWINDEX+INDEX,INDEX);
+			int tempIndex = INDEX; 
+			displayStatusBar(NORMALMODE);
+			INDEX = tempIndex;
+			SetCursor(0,0);
 		}
     }
     else if ( c == ARROWDOWN) {
-		if(isDownAllowed()){
-			if(INDEX<MAXROWINDEX){
-				moveCursorDown();
-				INDEX++;
-			}
+    	
+    	if(INDEX+1<NOE){
+    		INDEX++;
+    	
+    	EXTRA = INDEX>MAXROWINDEX?INDEX-MAXROWINDEX:0;
+		if(INDEX<MAXROWINDEX&&INDEX<NOE){
+			moveCursorDown();
+		}else{
+			ClearScreen();
+			SetCursor(0,0);	
+			printDirectories(workingDirectory,INDEX+1,MINROWINDEX+INDEX-MAXROWINDEX);
+			int tempIndex = INDEX; 
+			displayStatusBar(NORMALMODE);
+			INDEX = tempIndex;
+			SetCursor(MAXROWINDEX+1,0);
 		}
-    }
+    }}
     else if (c == ENTER){
     	if(workingDirectory==homeDirectory&&INDEX==1||INDEX==0){
     		continue;
@@ -408,8 +410,9 @@ int setNormalMode(){
 			presentDirectoryInfo.clear();
 			presentDirectory.clear();
 			reset();
+			displayStatusBar(NORMALMODE);
 			listDirectories(trim(targetPath),parentDirectory);
-			printDirectories(trim(targetPath));
+			printDirectories(trim(targetPath),MAXROWINDEX,MINROWINDEX);
 			SetCursor(0,0);
 		}
 		else if(presentDirectory[INDEX].second==0){
@@ -430,21 +433,16 @@ int setNormalMode(){
 
 
 int searchPrint(){
-    //cout<<"asfsd\n"<<file<<"\n";
     int flag = 0;
-	//cout<<"sprint count: "<<searchDirectory.size()<<"\n";
+    string parentpath;
 	for(int i=0;i<searchDirectory.size();i++){
-		//cout<<file<<" "<<directory[i].first<<"\n";
-		 string temp2 = searchDirectory[i].first;
-		 size_t found = temp2.find_last_of("/\\");
-		 
-		 string temp = temp2.substr(found+1);
-
-		 //cout<<temp<<" "<<searchFileName<<"\n";
-		if(trim(temp) == trim(searchFileName)){
-			cout<<"\n"<<temp2<<"\n";
-			searchResult.push_back(temp2);
-			searchDirectory[i].first = "-1";
+		if(searchDirectory[i].second==1&&i>0)
+			parentpath = parentpath+"/"+searchDirectory[i].first;
+		else if(searchDirectory[i].second==1&&i==0)
+			parentpath = parentpath+searchDirectory[i].first;
+		else if(searchDirectory[i].first == searchFileName){
+			cout<<"\n"<<parentpath+"/"+searchDirectory[i].first<<"\n";
+			searchResult.push_back(parentpath+"/"+searchDirectory[i].first);
 			if(flag==0)
 			flag = 1;
 		}
@@ -453,18 +451,7 @@ int searchPrint(){
 }
 
 
-int sPrint(){
-	cout<<"sprint count: "<<searchDirectory.size()<<"\n";
-	for(int i=0;i<searchDirectory.size();i++)
-			cout<<"\n"<<searchDirectory[i].first<<searchDirectory[i].second;
-			
-}
-
-
-
-
-void searchFiles(char *basePath)
-{
+void searchFiles(char *basePath){
     char path[PATH_MAX];
     string temp;
     int flag=1;
@@ -472,7 +459,6 @@ void searchFiles(char *basePath)
     DIR *dir = opendir(basePath);
     if(dir){
     	temp = string(basePath);
-    	//directory.push_back(temp);
     	searchDirectory.push_back(pair<string, int> (temp,1));
 
     while ((dp = readdir(dir)) != NULL)
@@ -481,13 +467,11 @@ void searchFiles(char *basePath)
 
     	if (strcmp(dp->d_name, ".") != 0 && strcmp(dp->d_name, "..") != 0)
         {
-            //strcpy(path, basePath);
-            //strcat(path, "/");
             strcpy(path, dp->d_name);
-            //printf("%s\n",path );
-            str = string(basePath)+"/"+string(path);
-    		searchDirectory.push_back(pair<string, int> (str,0));
+            str = string(path);
+            searchDirectory.push_back(pair<string, int> (str,0));
     	}
+
     }
     	closedir(dir);
 	}
@@ -495,42 +479,42 @@ void searchFiles(char *basePath)
 
 
 void search(){
- //   cout<<"\n"<<fileName<<"\n";
-	searchDirectory.clear();
+ 
+ 	searchDirectory.clear();
     char currentPath[workingDirectory.length()+1];
-            //cout<<"search: "<<searchFileName<<"\n";
 
     strcpy(currentPath,(char*)workingDirectory.c_str());
-    printf("%s\n", currentPath);
     
-    //vector<pair<string,int>> searchDirectory;
 
     searchFiles(currentPath);
 
-    cout<<"count: "<<searchDirectory.size()<<"\n";
 
     int i=1;
     while(i<searchDirectory.size()){
-
     	strcpy(currentPath, (char*)(searchDirectory[i].first).c_str());
-    	//cout<<string(path)<<"\n";
     	if(searchDirectory[i].second==0){
     		searchFiles(currentPath);
-    		i++;	
     	}
-    	
-    	i++;           // cout<<"search: "<<searchFileName<<"\n";
-    	cout<<i<<"\n";
+    	i++;           
     }
-    //cout<<"count: "<<searchDirectory.size()<<"\n";
-                //cout<<"search: "<<searchFileName<<"\n";
-
-//    cout<<"sdfsd\n"<<fileName<<"\n";
-      sPrint(); 
-            //cout<<"search: "<<searchFileName<<"\n";
-
     if(searchPrint()){
     	traverseLeft.push(workingDirectory);
+    	ClearScreen();
+    	SetCursor(0,0);
+    	terminal_init();
+    	cout<<"\nSearch Result\n";
+    	for(int i=0;i<searchResult.size();i++){
+    		cout<<searchResult[i]<<"\n";
+    	}
+
+    	char c;
+
+    	while ((c = getchar()) != EOF) {
+    		if(c==ARROWLEFT){
+				setNormalMode(1);
+				break;
+    		}
+    	}
     }
    
 }
@@ -545,7 +529,7 @@ void search(){
 int setCommandMode(){
 
 	setCursorBottomRow();
-    //displayStatusBar(COMMANDMODE);
+    displayStatusBar(COMMANDMODE);
     
 
     cout<<"\n\n";
@@ -556,7 +540,7 @@ int setCommandMode(){
     while(getline(cin,str)){
         
         if(str[0]==ESC){
-            setNormalMode();
+            setNormalMode(1);
             return 0;
         }
         else if(str.find("copy_file")==0){
@@ -585,7 +569,26 @@ int setCommandMode(){
             
         }
         else if(str.find("move_file")==0){
-            
+            vector<string> tokens;
+            char s = ' ';
+            int l=0,len=0,size = str.size();
+            for(int i=0;i<size;i++){
+               if(str[i]==s){
+                  tokens.push_back(str.substr(l,len));
+                  len=0;
+                  l= i+1;  
+               }else{
+                len++;
+               } 
+            }
+            tokens.push_back(str.substr(l,str.size()));
+
+            for(int i=1;i<tokens.size()-1;i++){
+              copyFile(tokens[i],tokens[tokens.size()-1]);
+              char c[tokens[i].size()+1];
+              strcpy(c,(char*)tokens[i].c_str());
+              deleteFile(c);
+            }
         }
         else if(str.find("move_dir")==0){
             
@@ -633,15 +636,15 @@ int setCommandMode(){
             createDirectory(temp);
         }
         else if(str.find("create_file")==0){
-
-            i=0;
+        	int i;
+           i=0;
             while(str[i]!=' '){
                 i++;
             }
             i++;
-            temp = str.substr(i);
+            string temp = str.substr(i);
             i=0;
-            count = 0;
+            int count = 0;
             while(temp[i]!=' '){
                 i++;
                 count++;
@@ -666,7 +669,12 @@ int setCommandMode(){
             dire[i] = '\0';
             string directory(dire);
 
-            createFile(file,dire);
+            try {
+			  	createFile(file,dire);
+			   } catch (const char* msg) {
+			     cout<< msg<< endl;
+			}
+			//createFile(file,dire);
         }
         else if(str.find("delete_file")==0){
             i=0;
@@ -737,7 +745,6 @@ int setCommandMode(){
             }
             tokens.push_back(str.substr(l,str.size()));
             searchFileName = tokens[1];
-            cout<<"search: "<<searchFileName<<"\n";
             search();
         }
         else if(str.find("snapshot")==0){
@@ -769,7 +776,7 @@ int setCommandMode(){
 		    }
 
         }
-            
+        setNormalMode(0);    
     }
 }
 
@@ -779,12 +786,9 @@ int setCommandMode(){
 
 int main(){
 
-	// printf ("lines %d\n", ws.ws_row);
-	 //printf ("columns %d\n", ws.ws_col);
-
 	initializeVariables();
 	cout<<homeDirectory<<"\n";
-	if(setNormalMode()==-1)
+	if(setNormalMode(1)==-1)
 		printf("Some error happened\n");
 	return 0;	
 }
@@ -795,16 +799,13 @@ int main(){
 
 void gotoDirectory(string dir){
 	reset();
-	//cout<<dir<<"\n";
 	dir = homeDirectory+dir;
 	workingDirectory = dir;
 	traverseLeft.push(dir);
-	setNormalMode();
-	//cout<<dir<<"\n";
+	setNormalMode(1);
 	traverseLeft.push(dir);
 	presentDirectoryInfo.clear();
 	presentDirectory.clear();
-	//listDirectories(dir);
 	SetCursor(1,0);
 }
 
@@ -815,8 +816,6 @@ void gotoDirectory(string dir){
 
 void setCursorBottomRow(){
 	SetCursor(BOTTOMROW,0);
-	//CURR_ROW.ws_row=BOTTOMROW;
-	//CURR_ROW.ws_col=0;
 }
 
 
@@ -828,8 +827,6 @@ void setCursorBottomRow(){
 
 void setCursorTopRow(){
 	SetCursor(FIRSTROW,0);
-	//CURR_ROW.ws_row=FIRSTROW;
-	//CURR_ROW.ws_col=0;
 }
 
 
@@ -842,9 +839,8 @@ void reset()
 {
 	ClearScreen();
 	INDEX = 0;
+	EXTRA = 0;
 	SetCursor(0,0);
-	//CURR_ROW.ws_row=FIRSTROW;
-	//CURR_ROW.ws_col=0;
 }
 
 
@@ -865,9 +861,9 @@ void initializeVariables(){
    workingDirectory = string(cwd);
    parentDirectory = string(cwd);
    traverseLeft.push(cwd);
-   //cout<<homeDirectory<<"\n";
+   
    INDEX = 0;
-   //reset();
+   
 }
 
 
@@ -888,7 +884,7 @@ int isUpAllowed(){
 ///////////////////////////////////////////////////////////// IS DOWN MOVEMENT ALLOWED INDEX //////////////////////////////////////////////////////////////////
 
 int isDownAllowed(){
-	if(INDEX<MAXROWINDEX)
+	if(INDEX<MAXROWINDEX-1)
 		return TRUE;
 	else
 		return FALSE;
@@ -921,23 +917,17 @@ void decrementIndex(){
 void displayStatusBar(int MODE){
 	if(MODE==NORMALMODE){
 		SetCursor(STATUSROW,0);
-		//CURR_ROW.ws_row=STATUSROW;
-		//CURR_ROW.ws_col=0;
-		//cout<<"**************************************************************************************************************************\n";
-		//cout<<"NORMAL MODE\n";
-		//cout<<"**************************************************************************************************************************\n";
-		SetCursor(1,0);
+		cout<<"**************************************************************************************************************************\n";
+		cout<<"NORMAL MODE\n";
+		cout<<"**************************************************************************************************************************\n";
+		SetCursor(0,0);
 		INDEX = 0;
 	}else if(MODE == COMMANDMODE){
-		//reset();
-		listDirectories(workingDirectory,parentDirectory);
 		SetCursor(STATUSROW,0);
-		//CURR_ROW.ws_row=STATUSROW;
-		//CURR_ROW.ws_col=0;
-		//cout<<"**************************************************************************************************************************\n";
-		//cout<<"COMMAND MODE\n";
-		//cout<<"**************************************************************************************************************************\n";
-		SetCursor(STATUSROW+1,0);
+		cout<<"**************************************************************************************************************************\n";
+		cout<<"COMMAND MODE\n";
+		cout<<"**************************************************************************************************************************\n";
+		SetCursor(STATUSROW+5,0);
 		
 	}
 
@@ -947,18 +937,15 @@ void displayStatusBar(int MODE){
 
 ///////////////////////////////////////////////////////// TRIM STRINGS ////////////////////////////////////////////////////////////////////////////////////////
 
-string& ltrim(std::string& s)
-{
-    auto it = std::find_if(s.begin(), s.end(),
-                            [](char c) {
+string& ltrim(std::string& s){
+    auto it = std::find_if(s.begin(), s.end(),[](char c) {
                                 return !std::isspace<char>(c, std::locale::classic());
                             });
     s.erase(s.begin(), it);
     return s;
 }
 
-string& rtrim(std::string& s)
-{
+string& rtrim(std::string& s){
     auto it = std::find_if(s.rbegin(), s.rend(),
                         [](char c) {
                             return !std::isspace<char>(c, std::locale::classic());
@@ -967,8 +954,7 @@ string& rtrim(std::string& s)
     return s;
 }
 
-string& trim(std::string& s)
-{
+string& trim(std::string& s){
     return ltrim(rtrim(s));
 }
 
