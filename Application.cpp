@@ -591,7 +591,31 @@ int setCommandMode(){
             }
         }
         else if(str.find("move_dir")==0){
-            
+         	vector<string> tokens;
+            char s = ' ';
+            int l=0,len=0,size = str.size();
+            for(int i=0;i<size;i++){
+               if(str[i]==s){
+                  tokens.push_back(str.substr(l,len));
+                  len=0;
+                  l= i+1;  
+               }else{
+                len++;
+               } 
+            }
+            tokens.push_back(str.substr(l,str.size()));
+
+            char c2[(tokens[tokens.size()-1]).size()+1];
+            strcpy(c2,(char*)(tokens[tokens.size()-1]).c_str());
+
+            for(int i=1;i<tokens.size()-1;i++){
+              char c1[tokens[i].size()+1];
+              strcpy(c1,(char*)tokens[i].c_str());	
+              rename(c1,c2);
+              //char c[tokens[i].size()+1];
+              //strcpy(c,(char*)tokens[i].c_str());
+              //deleteFile(c);
+            }   
         }
         else if(str.find("rename")==0){
             i=0;
